@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#f6f1e8" />
+  <title>Offline — Lab plan</title>
+  <style>
+    :root { --bg:#f6f1e8; --ink:#1c1916; --muted:#5c534a; --copper:#b87333; --card:#fffdf8; --line:#e4d8c8; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      background: var(--bg); color: var(--ink); line-height: 1.45;
+      display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+      padding: 1.4rem 1.5rem; max-width: 28rem; width: 100%;
+    }
+    h1 { margin: 0 0 0.6rem; font-size: 1.35rem; }
+    h1 span { color: var(--copper); }
+    p { margin: 0.5rem 0; color: var(--muted); }
+    button {
+      font: inherit; margin-top: 1rem; border-radius: 8px; border: none;
+      background: var(--copper); color: #fff; padding: 0.55rem 0.9rem; cursor: pointer; min-height: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Lab <span>plan</span> is offline</h1>
+    <p>This device can’t reach the server right now. Your signed-in session isn’t available offline — reconnect to open your lab plan.</p>
+    <p>Check your connection, then try again.</p>
+    <button type="button" onclick="location.reload()">Try again</button>
+  </div>
+</body>
+</html>

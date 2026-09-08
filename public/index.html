@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lab plan — Labthrift</title>
+  <meta name="description" content="Track your house lab with a username and a passkey. No email." />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#f6f1e8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Lab plan" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="offlineBanner" class="banner banner-warn hidden" role="status">Offline — edits stay on this device until you&rsquo;re back.</div>
+  <div id="passkeyNudge" class="banner banner-copper hidden" role="status">
+    <span>Only one passkey on this account. Add a second so you don&rsquo;t lock yourself out.</span>
+    <button type="button" class="secondary" id="nudgePasskeyBtn">Add passkey</button>
+    <button type="button" class="secondary" id="nudgeWhyBtn">Why?</button>
+  </div>
+  <div id="passkeyWhy" class="passkey-why card hidden" role="region" aria-labelledby="passkeyWhyTitle">
+    <h2 id="passkeyWhyTitle">Why a second passkey?</h2>
+    <p>Lab plan has <strong>no email and no password reset</strong>. Sign-in is only your username plus a passkey. If every passkey for this account is gone, the account is gone with it — we can&rsquo;t email you a recovery link.</p>
+    <p>A passkey lives on a device (or in a password manager). Lose that phone, wipe that laptop, or clear the keychain without a backup, and you&rsquo;re locked out unless another passkey still works.</p>
+    <p><strong>Best practice:</strong> enroll two different devices — for example a laptop <em>and</em> a phone. Then one broken or lost device doesn&rsquo;t strand the lab notebook. You can also mint a one-time enroll code in Settings for a device that isn&rsquo;t signed in yet.</p>
+    <p class="muted">More detail: <a href="https://labthrift.com/guides/lab-plan-passkeys" target="_blank" rel="noopener">How passkeys work</a>.</p>
+    <hr class="passkey-why-rule" />
+    <h3>Already covered by a cloud sync?</h3>
+    <p>Some passkeys sync across devices through a password manager (iCloud Passwords, Google Password Manager, Proton Pass, Bitwarden, 1Password, and similar). If <em>that</em> is how your only key works — unlockable on more than one device — you can hide this warning. A single hardware-only key on one phone is <strong>not</strong> enough.</p>
+    <label class="check passkey-why-check">
+      <input type="checkbox" id="cloudPasskeyAck" />
+      <span>I confirm my only passkey is cloud-backed (iCloud Passwords, Proton Pass, Google Password Manager, Bitwarden, 1Password, or similar) and I can use it from more than one device.</span>
+    </label>
+    <div class="row" style="justify-content:space-between;margin-top:0.85rem;flex-wrap:wrap;gap:0.5rem">
+      <button type="button" class="secondary" id="nudgeWhyClose">Close</button>
+      <button type="button" id="nudgeOverrideBtn" disabled>Hide this warning</button>
+    </div>
+  </div>
+  <header class="app">
+    <div class="brand">Lab <span>plan</span></div>
+    <div class="row">
+      <button type="button" class="secondary" id="themeBtn" title="Theme">Theme</button>
+      <a class="muted" href="https://labthrift.com/guides/lab-plan-passkeys">How passkeys work</a>
+      <span id="who" class="muted hidden"></span>
+      <button type="button" class="secondary hidden" id="logoutBtn">Sign out</button>
+    </div>
+  </header>
+  <div id="tourOverlay" class="tour-overlay hidden" role="region" aria-label="Lab plan tour" aria-labelledby="tourTitle">
+    <div class="tour-card card">
+      <h2 id="tourTitle">Welcome to your lab plan</h2>
+      <p id="tourBody" class="muted"></p>
+      <div class="row" style="justify-content:space-between;margin-top:0.75rem">
+        <button type="button" class="secondary" id="tourSkip">Skip</button>
+        <button type="button" id="tourNext">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <section id="gate" class="card">
+      <h1>Your lab plan</h1>
+      <p>One notebook for what you have, the weekend path, a simple closet map, house names, and later buys. Sign in with a <strong>username and a passkey</strong>. No email. No password.</p>
+      <ul class="privacy muted">
+        <li>We don't ask for a name, phone, or address.</li>
+        <li>Lose every passkey and the account is gone — add a second passkey here, or create a one-time enroll code for another device.</li>
+        <li>Export or delete your data anytime.</li>
+      </ul>
+      <div class="row" style="margin-top:1rem">
+        <input id="username" autocomplete="username webauthn" placeholder="username" maxlength="32" />
+        <button type="button" id="createBtn">Create with passkey</button>
+        <button type="button" class="secondary" id="signinBtn">Sign in</button>
+      </div>
+      <p id="gateErr" class="err hidden"></p>
+      <hr style="margin:1.25rem 0;border:none;border-top:1px solid var(--border,#ccc)" />
+      <h2 style="font-size:1.1rem;margin:0 0 0.5rem">Enroll this device</h2>
+      <p class="muted">Already have an account? Paste the one-time code from a signed-in device to add a passkey here (no QR sync needed).</p>
+      <div class="row" style="margin-top:0.75rem;flex-wrap:wrap">
+        <input id="enrollUser" autocomplete="username" placeholder="username" maxlength="32" />
+        <input id="enrollCode" autocomplete="one-time-code" placeholder="enroll code" maxlength="16" style="text-transform:uppercase" />
+        <button type="button" id="enrollBtn">Enroll with passkey</button>
+      </div>
+      <p class="muted" style="margin-top:1rem">Notes stay on <a href="https://labthrift.com">labthrift.com</a>. This app only stores your plan.</p>
+    </section>
+
+    <section id="app" class="hidden">
+      <div class="row" style="justify-content:space-between">
+        <h1 style="margin:0"><input id="labTitle" class="lab-title-input" maxlength="80" aria-label="Lab title" /></h1>
+        <div class="row">
+          <button type="button" class="secondary" id="saveBtn">Save</button>
+          <button type="button" class="secondary" id="exportBtn">Export JSON</button>
+        </div>
+      </div>
+      <p id="saveMsg" class="muted"></p>
+      <div id="conflictBar" class="banner banner-warn hidden" role="alert">
+        <span>This lab was saved elsewhere.</span>
+        <button type="button" class="secondary" id="conflictReload">Reload</button>
+        <button type="button" id="conflictForce">Force save</button>
+      </div>
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Lab plan panes">
+        <button type="button" role="tab" id="tab-stuff" data-pane="stuff" class="active" aria-selected="true" aria-controls="pane-stuff">Stuff I have</button>
+        <button type="button" role="tab" id="tab-services" data-pane="services" aria-selected="false" aria-controls="pane-services" tabindex="-1">Services</button>
+        <button type="button" role="tab" id="tab-headroom" data-pane="headroom" aria-selected="false" aria-controls="pane-headroom" tabindex="-1">Headroom</button>
+        <button type="button" role="tab" id="tab-weekend" data-pane="weekend" aria-selected="false" aria-controls="pane-weekend" tabindex="-1">Weekend path</button>
+        <button type="button" role="tab" id="tab-closet" data-pane="closet" aria-selected="false" aria-controls="pane-closet" tabindex="-1">Closet map</button>
+        <button type="button" role="tab" id="tab-hosts" data-pane="hosts" aria-selected="false" aria-controls="pane-hosts" tabindex="-1">House names</button>
+        <button type="button" role="tab" id="tab-bom" data-pane="bom" aria-selected="false" aria-controls="pane-bom" tabindex="-1">Later buys</button>
+        <button type="button" role="tab" id="tab-settings" data-pane="settings" aria-selected="false" aria-controls="pane-settings" tabindex="-1">Settings</button>
+      </nav>
+
+      <div id="pane-stuff" class="pane active card" role="tabpanel" aria-labelledby="tab-stuff">
+        <p class="muted">What already exists in the house — old PC, disks, switch, APs. Expand an item for rough specs and attention flags.</p>
+        <div id="invList" class="list"></div>
+        <button type="button" class="secondary" id="addInv">Add item</button>
+      </div>
+
+      <div id="pane-services" class="pane card" role="tabpanel" aria-labelledby="tab-services">
+        <p class="muted">Services you run (or plan to). Pick a host from Stuff, set rough RAM/CPU guesses. Presets are labeled guesses — not benchmarks.</p>
+        <div class="preset-row" id="servicePresets" role="group" aria-label="Service presets (rough guesses)"></div>
+        <div id="svcList" class="list"></div>
+        <button type="button" class="secondary" id="addSvc">Add service</button>
+      </div>
+
+      <div id="pane-headroom" class="pane card" role="tabpanel" aria-labelledby="tab-headroom">
+        <p class="muted">Sketch of headroom — sums service guesses against host specs. Not live metrics.</p>
+        <div id="headroomHosts" class="list"></div>
+        <h3 class="headroom-h">House power / UPS</h3>
+        <div class="capacity-ups row" style="align-items:flex-end">
+          <label>UPS VA (optional)
+            <input type="number" id="upsVa" min="0" max="100000" step="1" placeholder="e.g. 1500" />
+          </label>
+          <label style="flex:1;min-width:12rem">Power note
+            <input type="text" id="powerNote" maxlength="240" placeholder="UPS model, runtime guess…" />
+          </label>
+        </div>
+        <div id="headroomPower" class="headroom-power muted" style="margin-top:0.75rem"></div>
+      </div>
+
+      <div id="pane-weekend" class="pane card" role="tabpanel" aria-labelledby="tab-weekend">
+        <div class="row" style="justify-content:space-between;margin-bottom:0.5rem">
+          <p class="muted" style="margin:0">Check off Labthrift start path notes when you've done them. Links open the guides.</p>
+        </div>
+        <div class="row weekend-progress" style="justify-content:space-between;margin-bottom:0.75rem">
+          <strong id="weekendSummary">0 of 0 done</strong>
+          <label class="check" style="margin:0"><input type="checkbox" id="hideCompleted" /> Hide completed</label>
+        </div>
+        <div id="checkList" class="list"></div>
+      </div>
+
+      <div id="pane-closet" class="pane card" role="tabpanel" aria-labelledby="tab-closet">
+        <p class="muted">Rough rack sketch — not CAD. Pick U height, drop gear, label switch ports.</p>
+        <label class="rack-units-label">Rack units
+          <input type="number" id="rackUnits" min="1" max="42" value="12" />
+        </label>
+
+        <div class="closet-layout">
+          <div class="rack-panel">
+            <div id="rackViz" class="rack-viz" role="list" aria-label="Front of rack"></div>
+          </div>
+          <aside class="rack-editor" id="rackEditor" aria-live="polite">
+            <h3 class="rack-editor-title">Gear</h3>
+            <p class="muted" id="rackEditorHint">Click an empty U to place gear, or an occupied slot to edit.</p>
+            <div id="rackEditorForm" class="rack-editor-form hidden">
+              <p id="rackEditorHeading" class="rack-editor-heading"></p>
+              <label>Name
+                <input id="slotName" type="text" placeholder="Switch, NAS, UPS…" maxlength="80" />
+              </label>
+              <label>Link from Stuff I have (optional)
+                <select id="slotInvLink">
+                  <option value="">— none —</option>
+                </select>
+              </label>
+              <label>Start (U)
+                <input id="slotStart" type="number" min="1" max="42" value="1" />
+              </label>
+              <label>Height (U)
+                <input id="slotHeight" type="number" min="1" max="42" value="1" />
+              </label>
+              <p id="rackErr" class="err hidden"></p>
+              <div class="row rack-editor-actions">
+                <button type="button" id="slotPlaceBtn">Place</button>
+                <button type="button" class="secondary hidden" id="slotRemoveBtn">Remove</button>
+                <button type="button" class="secondary" id="slotCancelBtn">Cancel</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <h3>Switch ports</h3>
+        <p class="muted">Tap a chip to edit. Labeled ports tint copper.</p>
+        <div id="portGrid" class="port-grid" role="list"></div>
+        <div id="portEditor" class="port-editor hidden">
+          <label>Port #
+            <input id="portNum" type="text" placeholder="#" maxlength="8" />
+          </label>
+          <label>Label
+            <input id="portLabel" type="text" placeholder="NAS, AP…" maxlength="40" />
+          </label>
+          <div class="row">
+            <button type="button" class="secondary" id="portRemoveBtn">Remove</button>
+            <button type="button" class="secondary" id="portDoneBtn">Done</button>
+          </div>
+        </div>
+        <button type="button" class="secondary" id="addPort">Add port</button>
+      </div>
+
+      <div id="pane-hosts" class="pane card" role="tabpanel" aria-labelledby="tab-hosts">
+        <p class="muted">Hostnames and fixed addresses. Copy a hosts-file snippet when you need it.</p>
+        <div id="hostList" class="list"></div>
+        <div class="row">
+          <button type="button" class="secondary" id="addHost">Add host</button>
+          <button type="button" class="secondary" id="copyHosts">Copy hosts snippet</button>
+        </div>
+        <pre id="hostsPreview" class="muted" style="white-space:pre-wrap"></pre>
+      </div>
+
+      <div id="pane-bom" class="pane card" role="tabpanel" aria-labelledby="tab-bom">
+        <p class="muted">Pin Labthrift guide slugs you're considering, skipping, or already bought.</p>
+        <div class="bom-filters row" id="bomFilters" role="group" aria-label="Filter later buys">
+          <button type="button" class="chip active" data-bom-filter="all">All</button>
+          <button type="button" class="chip" data-bom-filter="consider">Consider</button>
+          <button type="button" class="chip" data-bom-filter="skip">Skip</button>
+          <button type="button" class="chip" data-bom-filter="bought">Bought</button>
+        </div>
+        <div id="bomList" class="list"></div>
+        <button type="button" class="secondary" id="addBom">Add pin</button>
+      </div>
+
+      <div id="pane-settings" class="pane card" role="tabpanel" aria-labelledby="tab-settings">
+        <h2>Theme</h2>
+        <fieldset class="theme-radios">
+          <legend class="muted">Appearance</legend>
+          <label><input type="radio" name="themePick" value="light" /> Light</label>
+          <label><input type="radio" name="themePick" value="dark" /> Dark</label>
+          <label><input type="radio" name="themePick" value="auto" /> Match system</label>
+        </fieldset>
+        <h2>Install</h2>
+        <p class="muted" id="installHelp">On iPhone/iPad: Share → Add to Home Screen.</p>
+        <button type="button" class="secondary hidden" id="installBtn">Install Lab plan</button>
+        <h2>Backup</h2>
+        <p class="muted">Export a JSON copy, or replace this lab from a previous export (<code>schema_version: 1</code> or <code>2</code>).</p>
+        <div class="row" style="flex-wrap:wrap">
+          <button type="button" class="secondary" id="exportBtnSettings">Export JSON</button>
+          <label class="secondary file-btn">Import JSON<input type="file" id="importFile" accept="application/json,.json" hidden /></label>
+        </div>
+        <h2>Passkeys</h2>
+        <p class="muted" id="passkeyCountMsg">Add a passkey on <em>this</em> device while signed in, or create a one-time enroll code for a device that is still signed out.</p>
+        <div id="passkeyList" class="list" style="margin:0.75rem 0"></div>
+        <button type="button" id="addPasskeyBtn">Add passkey here</button>
+        <h3 style="margin-top:1.25rem">Enroll another device</h3>
+        <p class="muted">Creates an 8-character code + link (15 minutes, single use). On the other device open the link or use the gate form below.</p>
+        <div class="row" style="flex-wrap:wrap">
+          <button type="button" id="mintEnrollBtn">Create enroll code</button>
+          <button type="button" class="secondary" id="copyEnrollBtn" disabled>Copy link</button>
+        </div>
+        <pre id="enrollOut" class="muted" style="white-space:pre-wrap;margin-top:0.75rem"></pre>
+        <h2>Danger</h2>
+        <p class="muted">Deletes your username, passkeys, and lab plan. No undo.</p>
+        <button type="button" class="danger" id="deleteBtn">Delete account</button>
+        <p id="setErr" class="err hidden"></p>
+      </div>
+    </section>
+  </main>
+  <p id="bootErr" class="err hidden" style="max-width:920px;margin:1rem auto;padding:0 1.25rem"></p>
+  <script type="module">
+    import("/app.js").catch((e) => {
+      const el = document.getElementById("bootErr");
+      if (!el) return;
+      el.classList.remove("hidden");
+      el.textContent = "Could not load the app script: " + (e && e.message ? e.message : e);
+    });
+  </script>
+</body>
+</html>
+<!-- capacity 20260905223500 -->

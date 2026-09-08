@@ -1,0 +1,31 @@
+{
+  "name": "lab-plan",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-08-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lab-plan",
+      "database_id": "460d1bcf-326f-4f49-a74a-e0af9993926c",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "WEBAUTHN_RP_NAME": "Labthrift",
+    "WEBAUTHN_RP_ID": "labthrift.com,lab-plan.lmao.workers.dev",
+    "WEBAUTHN_ORIGIN": "https://plan.labthrift.com,https://lab-plan.lmao.workers.dev,https://app.labthrift.com"
+  },
+  "routes": [
+    { "pattern": "plan.labthrift.com", "custom_domain": true }
+  ],
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}
