@@ -1,5 +1,5 @@
 /* Lab plan service worker — static cache + network-first API/auth */
-const CACHE = "lab-plan-static-v3";
+const CACHE = "lab-plan-static-v4";
 const OFFLINE_URL = "/offline";
 
 const PRECACHE = [

@@ -26,6 +26,14 @@
       font: inherit; margin-top: 1rem; border-radius: 8px; border: none;
       background: var(--copper); color: #fff; padding: 0.55rem 0.9rem; cursor: pointer; min-height: 40px;
     }
+
+/* Keep company and draft-policy links available before and after sign-in. */
+.company-legal{display:flex;flex-wrap:wrap;gap:.35rem 1rem;margin:1rem 0 0;padding-top:.85rem;border-top:1px solid var(--line);font-size:.85rem;line-height:1.6;color:var(--muted)}
+.company-legal a{color:inherit;text-decoration:underline;text-underline-offset:.2em;padding:.25rem 0}
+.company-legal a:first-child{font-weight:600;color:var(--ink)}
+.company-legal a:hover{color:var(--ink)}
+.company-legal a:focus-visible{outline:2px solid currentColor;outline-offset:4px;border-radius:2px}
+.company-footer{max-width:920px;margin:0 auto 2rem;padding:0 1.25rem}
   </style>
 </head>
 <body>
@@ -34,6 +42,15 @@
     <p>This device can’t reach the server right now. Your signed-in session isn’t available offline — reconnect to open your lab plan.</p>
     <p>Check your connection, then try again.</p>
     <button type="button" onclick="location.reload()">Try again</button>
+    <nav class="company-legal" aria-label="Company and draft policies">
+      <a href="https://digifender.com/">A Digifender product</a>
+      <a href="https://digifender.com/legal/labthrift/terms">Draft terms</a>
+      <a href="https://digifender.com/legal/labthrift/privacy">Draft privacy policy</a>
+      <a href="https://digifender.com/legal/labthrift/cookies">Draft cookie notice</a>
+      <a href="https://digifender.com/legal/labthrift">All draft policies</a>
+      <a href="mailto:legal@digifender.com">Legal contact</a>
+    </nav>
+    <p><small>Policy links are available when you reconnect.</small></p>
   </div>
 </body>
 </html>

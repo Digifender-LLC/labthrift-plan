@@ -13,7 +13,7 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css?v=portfolio-20261003" />
 </head>
 <body>
   <div id="offlineBanner" class="banner banner-warn hidden" role="status">Offline — edits stay on this device until you&rsquo;re back.</div>
@@ -69,6 +69,14 @@
         <li>Lose every passkey and the account is gone — add a second passkey here, or create a one-time enroll code for another device.</li>
         <li>Export or delete your data anytime.</li>
       </ul>
+      <nav class="company-legal" aria-label="Account entry draft policies">
+        <a href="https://digifender.com/">A Digifender product</a>
+        <a href="https://digifender.com/legal/labthrift/terms">Draft terms</a>
+        <a href="https://digifender.com/legal/labthrift/privacy">Draft privacy policy</a>
+        <a href="https://digifender.com/legal/labthrift/cookies">Draft cookie notice</a>
+        <a href="https://digifender.com/legal/labthrift">All draft policies</a>
+        <a href="mailto:legal@digifender.com">Legal contact</a>
+      </nav>
       <div class="row" style="margin-top:1rem">
         <input id="username" autocomplete="username webauthn" placeholder="username" maxlength="32" />
         <button type="button" id="createBtn">Create with passkey</button>
@@ -265,6 +273,36 @@
     </section>
   </main>
   <p id="bootErr" class="err hidden" style="max-width:920px;margin:1rem auto;padding:0 1.25rem"></p>
+  <section class="retention-tools" data-retention-tools aria-label="Find and manage records">
+    <div>
+      <strong>Find and manage</strong>
+      <span data-retention-status>Ready</span>
+    </div>
+    <label>Search <input data-retention-search type="search" placeholder="Search this list"></label>
+    <label>Sort <select data-retention-sort><option value="default">Current order</option><option value="az">A to Z</option><option value="za">Z to A</option></select></label>
+    <button type="button" data-retention-select-visible>Select visible</button>
+    <button type="button" data-retention-clear>Clear selection</button>
+  </section>
+  <footer class="company-footer">
+    <nav class="company-legal" aria-label="Company and draft policies">
+      <a href="https://digifender.com/">A Digifender product</a>
+      <a href="https://digifender.com/legal/labthrift/terms">Draft terms</a>
+      <a href="https://digifender.com/legal/labthrift/privacy">Draft privacy policy</a>
+      <a href="https://digifender.com/legal/labthrift/cookies">Draft cookie notice</a>
+      <a href="https://digifender.com/legal/labthrift">All draft policies</a>
+      <a href="mailto:legal@digifender.com">Legal contact</a>
+    </nav>
+  </footer>
+  <script src="/retention-controls.js" defer></script>
+  <style>
+    .retention-tools { display:grid; grid-template-columns:minmax(12rem,1.5fr) repeat(2,minmax(9rem,1fr)) auto auto; gap:.6rem; align-items:end; max-width:920px; margin:1rem auto; padding:.8rem 1rem; border:1px solid var(--line,#d8d8d8); border-radius:12px; background:var(--card,#fff); }
+    .retention-tools > div { display:flex; flex-direction:column; gap:.2rem; }
+    .retention-tools label { display:flex; flex-direction:column; gap:.25rem; font-size:.78rem; }
+    .retention-tools input, .retention-tools select, .retention-tools button { min-height:2.75rem; }
+    .retention-tools [data-retention-status] { color:var(--muted,#687076); font-size:.8rem; }
+    .retention-select { display:inline-flex; margin-right:.5rem; min-width:1.5rem; vertical-align:middle; }
+    @media (max-width:720px) { .retention-tools { grid-template-columns:1fr 1fr; position:sticky; bottom:.5rem; z-index:3; } .retention-tools > div, .retention-tools label:first-of-type { grid-column:1 / -1; } }
+  </style>
   <script type="module">
     import("/app.js").catch((e) => {
       const el = document.getElementById("bootErr");

@@ -206,12 +206,19 @@ function b64url(buf: ArrayBuffer | Uint8Array): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function fromB64url(s: string): Uint8Array {
+function fromB64url(s: string): Uint8Array<ArrayBuffer> {
   const pad = "=".repeat((4 - (s.length % 4)) % 4);
   const b64 = (s + pad).replace(/-/g, "+").replace(/_/g, "/");
   const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
+  const out = new Uint8Array(new ArrayBuffer(bin.length));
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function webAuthnUserId(value: string): Uint8Array<ArrayBuffer> {
+  const encoded = new TextEncoder().encode(value);
+  const out = new Uint8Array(new ArrayBuffer(encoded.length));
+  out.set(encoded);
   return out;
 }
 
@@ -583,7 +590,7 @@ app.post("/auth/register/options", async (c) => {
     rpID,
     userName: username,
     userDisplayName: username,
-    userID: new TextEncoder().encode(userId),
+    userID: webAuthnUserId(userId),
     attestationType: "none",
     authenticatorSelection: {
       residentKey: "required",
@@ -671,7 +678,7 @@ app.post("/auth/login/options", async (c) => {
   const user = await c.env.DB.prepare("SELECT id, username FROM users WHERE username = ? COLLATE NOCASE")
     .bind(username)
     .first<{ id: string; username: string }>();
-  if (!user) return c.json({ error: "unknown_user" }, 404);
+  if (!user) return c.json({ error: "invalid_credentials" }, 401);
   const keys = await c.env.DB.prepare("SELECT id, transports FROM passkeys WHERE user_id = ?")
     .bind(user.id)
     .all<{ id: string; transports: string | null }>();
@@ -702,7 +709,7 @@ app.post("/auth/login/verify", async (c) => {
     .bind(challenge)
     .first<{ id: string; username: string; user_id: string; challenge: string; expires_at: string }>();
   if (!row || row.expires_at < nowIso() || row.username.toLowerCase() !== username.toLowerCase()) {
-    return c.json({ error: "challenge_invalid" }, 400);
+    return c.json({ error: "invalid_credentials" }, 401);
   }
   await c.env.DB.prepare("DELETE FROM webauthn_challenges WHERE id = ?").bind(row.id).run();
 
@@ -711,7 +718,7 @@ app.post("/auth/login/verify", async (c) => {
   )
     .bind(cred.id, row.user_id)
     .first<{ id: string; public_key: string; counter: number; transports: string | null }>();
-  if (!passkey) return c.json({ error: "unknown_credential" }, 400);
+  if (!passkey) return c.json({ error: "invalid_credentials" }, 401);
 
   const { rpID, expectedOrigins } = rpConfig(c);
   let verification;
@@ -732,9 +739,9 @@ app.post("/auth/login/verify", async (c) => {
       requireUserVerification: false,
     });
   } catch {
-    return c.json({ error: "verification_failed" }, 400);
+    return c.json({ error: "invalid_credentials" }, 401);
   }
-  if (!verification.verified) return c.json({ error: "verification_failed" }, 400);
+  if (!verification.verified) return c.json({ error: "invalid_credentials" }, 401);
 
   await c.env.DB.prepare("UPDATE passkeys SET counter = ? WHERE id = ?")
     .bind(verification.authenticationInfo.newCounter, passkey.id)
@@ -835,7 +842,7 @@ app.post("/auth/enroll/options", async (c) => {
     rpID,
     userName: user.username,
     userDisplayName: user.username,
-    userID: new TextEncoder().encode(user.id),
+    userID: webAuthnUserId(user.id),
     attestationType: "none",
     excludeCredentials: (keys.results || []).map((k) => ({
       id: k.id,
@@ -934,7 +941,7 @@ app.post("/auth/passkeys/options", requireUser, async (c) => {
     rpID,
     userName: username,
     userDisplayName: username,
-    userID: new TextEncoder().encode(userId),
+    userID: webAuthnUserId(userId),
     attestationType: "none",
     excludeCredentials: (keys.results || []).map((k) => ({
       id: k.id,
