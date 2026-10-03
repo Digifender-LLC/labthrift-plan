@@ -265,6 +265,26 @@
     </section>
   </main>
   <p id="bootErr" class="err hidden" style="max-width:920px;margin:1rem auto;padding:0 1.25rem"></p>
+  <section class="retention-tools" data-retention-tools aria-label="Find and manage records">
+    <div>
+      <strong>Find and manage</strong>
+      <span data-retention-status>Ready</span>
+    </div>
+    <label>Search <input data-retention-search type="search" placeholder="Search this list"></label>
+    <label>Sort <select data-retention-sort><option value="default">Current order</option><option value="az">A to Z</option><option value="za">Z to A</option></select></label>
+    <button type="button" data-retention-select-visible>Select visible</button>
+    <button type="button" data-retention-clear>Clear selection</button>
+  </section>
+  <script src="/retention-controls.js" defer></script>
+  <style>
+    .retention-tools { display:grid; grid-template-columns:minmax(12rem,1.5fr) repeat(2,minmax(9rem,1fr)) auto auto; gap:.6rem; align-items:end; max-width:920px; margin:1rem auto; padding:.8rem 1rem; border:1px solid var(--line,#d8d8d8); border-radius:12px; background:var(--card,#fff); }
+    .retention-tools > div { display:flex; flex-direction:column; gap:.2rem; }
+    .retention-tools label { display:flex; flex-direction:column; gap:.25rem; font-size:.78rem; }
+    .retention-tools input, .retention-tools select, .retention-tools button { min-height:2.75rem; }
+    .retention-tools [data-retention-status] { color:var(--muted,#687076); font-size:.8rem; }
+    .retention-select { display:inline-flex; margin-right:.5rem; min-width:1.5rem; vertical-align:middle; }
+    @media (max-width:720px) { .retention-tools { grid-template-columns:1fr 1fr; position:sticky; bottom:.5rem; z-index:3; } .retention-tools > div, .retention-tools label:first-of-type { grid-column:1 / -1; } }
+  </style>
   <script type="module">
     import("/app.js").catch((e) => {
       const el = document.getElementById("bootErr");
