@@ -15,3 +15,5 @@ Separate documents cover business intent, product behavior, requirements, and im
 Read BRD → PRD → FRD/SRS for scope; HLD → SDD → TDD/LLD for implementation. ADR records why the boundaries were chosen. Changes to requirements must update their IDs, affected designs, tests, and release evidence together.
 
 The Runs-to-ByteRush merge does not migrate this product’s accounts or database. See [release status](release-status.md).
+
+[Universal completion roadmap](https://github.com/zemdregon/tech-dose/blob/main/docs/ROADMAP.md) sequences work across all three products, with dependencies, acceptance criteria, and coverage of all 100 numbered requirements.
