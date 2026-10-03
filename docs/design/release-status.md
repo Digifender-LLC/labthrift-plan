@@ -23,4 +23,4 @@ The account gate shows the six links before the create/sign-in actions. A shared
 
 Local verification: desktop and 390px phone layouts, light and dark themes, correct link placement, and no horizontal overflow. The unauthenticated lab API still returns 401. The Worker bundle remains byte-identical to the live baseline. No live account was created or changed.
 
-Release state: locally verified; deployment and live verification pending.
+Release state: **deployed and verified live**. Cloudflare Worker version `f30c1b10-7b13-4c08-ae6c-5c2a1a336295`. All 73 public assets matched the reviewed source after line-ending and Cloudflare-injection normalization. Desktop and 390px live checks passed exact destinations, draft labels and layout. Returning-browser verification caught stale CSS; versioned stylesheet URLs now refresh the new footer without clearing visitor storage. The Worker code, bindings, runtime, routing and headers were read back and remain equivalent to the prior deployment. Full evidence is in the oversight task’s `outputs/labthrift-source-recovery-2026-10-03/`.
