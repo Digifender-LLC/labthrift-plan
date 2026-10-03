@@ -69,6 +69,14 @@
         <li>Lose every passkey and the account is gone — add a second passkey here, or create a one-time enroll code for another device.</li>
         <li>Export or delete your data anytime.</li>
       </ul>
+      <nav class="company-legal" aria-label="Account entry draft policies">
+        <a href="https://digifender.com/">A Digifender product</a>
+        <a href="https://digifender.com/legal/labthrift/terms">Draft terms</a>
+        <a href="https://digifender.com/legal/labthrift/privacy">Draft privacy policy</a>
+        <a href="https://digifender.com/legal/labthrift/cookies">Draft cookie notice</a>
+        <a href="https://digifender.com/legal/labthrift">All draft policies</a>
+        <a href="mailto:legal@digifender.com">Legal contact</a>
+      </nav>
       <div class="row" style="margin-top:1rem">
         <input id="username" autocomplete="username webauthn" placeholder="username" maxlength="32" />
         <button type="button" id="createBtn">Create with passkey</button>
@@ -275,6 +283,16 @@
     <button type="button" data-retention-select-visible>Select visible</button>
     <button type="button" data-retention-clear>Clear selection</button>
   </section>
+  <footer class="company-footer">
+    <nav class="company-legal" aria-label="Company and draft policies">
+      <a href="https://digifender.com/">A Digifender product</a>
+      <a href="https://digifender.com/legal/labthrift/terms">Draft terms</a>
+      <a href="https://digifender.com/legal/labthrift/privacy">Draft privacy policy</a>
+      <a href="https://digifender.com/legal/labthrift/cookies">Draft cookie notice</a>
+      <a href="https://digifender.com/legal/labthrift">All draft policies</a>
+      <a href="mailto:legal@digifender.com">Legal contact</a>
+    </nav>
+  </footer>
   <script src="/retention-controls.js" defer></script>
   <style>
     .retention-tools { display:grid; grid-template-columns:minmax(12rem,1.5fr) repeat(2,minmax(9rem,1fr)) auto auto; gap:.6rem; align-items:end; max-width:920px; margin:1rem auto; padding:.8rem 1rem; border:1px solid var(--line,#d8d8d8); border-radius:12px; background:var(--card,#fff); }
