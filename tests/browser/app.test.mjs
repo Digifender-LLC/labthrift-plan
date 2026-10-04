@@ -143,10 +143,11 @@ describe("offline", () => {
     await createAccount(d.page, uniqueName("ui_offline"));
     const { context, page } = d;
     await context.setOffline(true);
+    await page.waitForFunction(() => navigator.onLine === false);
+    await page.locator("#labTitle").fill("Edited offline");
     await page.locator("#offlineBanner").waitFor({ state: "visible" });
     const banner = await page.locator("#offlineBanner").textContent();
     assert.match(banner, /not saved/i, "banner does not promise local persistence");
-    await page.locator("#labTitle").fill("Edited offline");
     await page.waitForTimeout(800);
     assert.doesNotMatch(await saveMsg(page).textContent(), /^Saved/);
     assert.match(await saveMsg(page).textContent(), /Offline/);

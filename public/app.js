@@ -192,6 +192,9 @@ function scheduleLiveRender() {
 function scheduleSave() {
   if (!lab) return;
   if (browserOffline()) {
+    // Don't rely on the window "offline" event alone to show the banner.
+    online = false;
+    setOfflineBanner();
     $("saveMsg").textContent = "Offline — will retry when back";
     return;
   }
@@ -211,6 +214,8 @@ function persist(gen, opts) {
 async function persistNow(gen, { force = false } = {}) {
   if (!lab) return;
   if (browserOffline()) {
+    online = false;
+    setOfflineBanner();
     dirty = true;
     $("saveMsg").textContent = "Offline — will retry when back";
     return;
