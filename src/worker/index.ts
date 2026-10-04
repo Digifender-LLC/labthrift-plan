@@ -1042,41 +1042,35 @@ app.get("/api/lab", requireUser, async (c) => {
   return c.json(lab);
 });
 
-app.put("/api/lab", requireUser, async (c) => {
-  const body = await c.req.json().catch(() => null);
-  const lab = clampLab(body);
-  const userId = c.get("userId");
-  const force = !!(body && (body as any).force === true);
-  const clientVersion =
-    (typeof (body as any)?.updated_at === "string" && (body as any).updated_at) ||
-    c.req.header("if-match") ||
-    c.req.header("If-Match") ||
-    null;
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
 
-  const current = await c.env.DB.prepare("SELECT updated_at FROM labs WHERE user_id = ?")
-    .bind(userId)
-    .first<{ updated_at: string }>();
-  if (!current) return c.json({ error: "missing_lab" }, 404);
+/** Next lab revision: now, but always strictly after the previous revision so versions never repeat. */
+function nextRevision(prev: string): string {
+  const now = Date.now();
+  const prevMs = Date.parse(prev);
+  return new Date(Number.isFinite(prevMs) && prevMs >= now ? prevMs + 1 : now).toISOString();
+}
 
-  if (!force && clientVersion && clientVersion !== current.updated_at) {
-    const full = await getLab(c.env.DB, userId);
-    return c.json(
-      {
-        error: "conflict",
-        message: "Lab was updated elsewhere",
-        updated_at: current.updated_at,
-        lab: full,
-      },
-      409
-    );
-  }
-
-  const ts = nowIso();
+/**
+ * Conditional write: replaces the notebook only if its revision is still `expected`.
+ * Returns false when another write landed first (or the lab is gone).
+ */
+async function writeLab(
+  db: D1Database,
+  userId: string,
+  lab: ReturnType<typeof clampLab>,
+  expected: string,
+  revision: string
+): Promise<boolean> {
   const capacity = sanitizeCapacity(lab);
-  await c.env.DB.prepare(
-    `UPDATE labs SET title = ?, inventory_json = ?, checklist_json = ?, closet_json = ?,
-     hosts_json = ?, bom_json = ?, services_json = ?, capacity_json = ?, updated_at = ? WHERE user_id = ?`
-  )
+  const res = await db
+    .prepare(
+      `UPDATE labs SET title = ?, inventory_json = ?, checklist_json = ?, closet_json = ?,
+       hosts_json = ?, bom_json = ?, services_json = ?, capacity_json = ?, updated_at = ?
+       WHERE user_id = ? AND updated_at = ?`
+    )
     .bind(
       lab.title,
       JSON.stringify(lab.inventory),
@@ -1086,20 +1080,89 @@ app.put("/api/lab", requireUser, async (c) => {
       JSON.stringify(lab.bom),
       JSON.stringify(lab.services),
       JSON.stringify(capacity),
-      ts,
-      userId
+      revision,
+      userId,
+      expected
     )
     .run();
+  return (res.meta?.changes ?? 0) === 1;
+}
+
+async function currentRevision(db: D1Database, userId: string): Promise<string | null> {
+  const row = await db.prepare("SELECT updated_at FROM labs WHERE user_id = ?").bind(userId).first<{ updated_at: string }>();
+  return row ? row.updated_at : null;
+}
+
+/**
+ * Explicit replacement (force save or import): ignores the client's version but still writes
+ * conditionally against the latest revision, so concurrent writes each get their own version.
+ */
+async function replaceLab(
+  db: D1Database,
+  userId: string,
+  lab: ReturnType<typeof clampLab>
+): Promise<{ revision: string } | { error: "missing_lab" | "busy" }> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const current = await currentRevision(db, userId);
+    if (!current) return { error: "missing_lab" };
+    const revision = nextRevision(current);
+    if (await writeLab(db, userId, lab, current, revision)) return { revision };
+  }
+  return { error: "busy" };
+}
+
+async function conflictResponse(c: any, userId: string) {
+  const full = await getLab(c.env.DB, userId);
+  if (!full) return c.json({ error: "missing_lab" }, 404);
+  return c.json(
+    {
+      error: "conflict",
+      message: "Lab was updated elsewhere",
+      updated_at: full.updated_at,
+      lab: full,
+    },
+    409
+  );
+}
+
+app.put("/api/lab", requireUser, async (c) => {
+  const body = await c.req.json().catch(() => null);
+  if (!isPlainObject(body)) return c.json({ error: "bad_request" }, 400);
+  const lab = clampLab(body);
+  const userId = c.get("userId");
+  const force = body.force === true;
+  const clientVersion =
+    (typeof body.updated_at === "string" && body.updated_at) ||
+    c.req.header("if-match") ||
+    c.req.header("If-Match") ||
+    null;
+
+  let revision: string;
+  if (force) {
+    const res = await replaceLab(c.env.DB, userId, lab);
+    if ("error" in res) return c.json({ error: res.error }, res.error === "busy" ? 503 : 404);
+    revision = res.revision;
+  } else {
+    const current = await currentRevision(c.env.DB, userId);
+    if (!current) return c.json({ error: "missing_lab" }, 404);
+    // Without a version the save is based on whatever was current when it was read.
+    const expected = clientVersion ?? current;
+    if (expected !== current) return conflictResponse(c, userId);
+    revision = nextRevision(current);
+    // The version check is part of the UPDATE predicate, so a racing save cannot slip in between.
+    if (!(await writeLab(c.env.DB, userId, lab, expected, revision))) return conflictResponse(c, userId);
+  }
+
   if (!isBotRequest(c)) scheduleMetric(c, "lab_save_human");
   else scheduleMetric(c, "lab_save_bot");
-  return c.json({ ok: true, updated_at: ts });
+  return c.json({ ok: true, updated_at: revision });
 });
 
 app.post("/api/lab/import", requireUser, async (c) => {
   const body = await c.req.json().catch(() => null);
-  if (!body || typeof body !== "object") return c.json({ error: "bad_request" }, 400);
+  if (!isPlainObject(body)) return c.json({ error: "bad_request" }, 400);
 
-  const version = (body as any).schema_version;
+  const version = body.schema_version;
   // Legacy exports omit schema_version — treat as v1. Accept 1–2; reject unknown future versions.
   if (version != null) {
     const v = Number(version);
@@ -1108,32 +1171,16 @@ app.post("/api/lab/import", requireUser, async (c) => {
     }
   }
 
-  const rawLab = (body as any).lab && typeof (body as any).lab === "object" ? (body as any).lab : body;
+  const rawLab = isPlainObject(body.lab) ? body.lab : body;
   const lab = clampLab(rawLab);
-  const ts = nowIso();
   const userId = c.get("userId");
-  const capacity = sanitizeCapacity(lab);
-  await c.env.DB.prepare(
-    `UPDATE labs SET title = ?, inventory_json = ?, checklist_json = ?, closet_json = ?,
-     hosts_json = ?, bom_json = ?, services_json = ?, capacity_json = ?, updated_at = ? WHERE user_id = ?`
-  )
-    .bind(
-      lab.title,
-      JSON.stringify(lab.inventory),
-      JSON.stringify(lab.checklist),
-      JSON.stringify(lab.closet),
-      JSON.stringify(lab.hosts),
-      JSON.stringify(lab.bom),
-      JSON.stringify(lab.services),
-      JSON.stringify(capacity),
-      ts,
-      userId
-    )
-    .run();
+  // Import is an explicit, user-confirmed replacement of the whole notebook.
+  const res = await replaceLab(c.env.DB, userId, lab);
+  if ("error" in res) return c.json({ error: res.error }, res.error === "busy" ? 503 : 404);
   if (!isBotRequest(c)) scheduleMetric(c, "lab_save_human");
   else scheduleMetric(c, "lab_save_bot");
   const full = await getLab(c.env.DB, userId);
-  return c.json({ ok: true, updated_at: ts, lab: full });
+  return c.json({ ok: true, updated_at: res.revision, lab: full });
 });
 
 app.get("/api/lab/export", requireUser, async (c) => {

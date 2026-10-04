@@ -9,7 +9,7 @@
 | FR-P2 | GET `/auth/me` | Return authenticated identity; reject absent/expired session |
 | FR-P3 | GET `/api/lab` | Return only current user’s notebook |
 | FR-P4 | PUT `/api/lab` | Sanitize/clamp fields; persist lab; return updated timestamp |
-| FR-P5 | Save with stale `updated_at` / `If-Match` | Return 409 with latest lab unless explicit force |
+| FR-P5 | Save with stale `updated_at` / `If-Match` | Return 409 with latest lab unless explicit force; with ADR-P006, also when a simultaneous save wins the race |
 | FR-P6 | POST `/api/lab/import` | Accept legacy/v1/v2 exports; reject unknown schema |
 | FR-P7 | GET `/api/lab/export` | Download versioned JSON with timestamp and lab |
 | FR-P8 | Passkey management/enrollment | Add/list/revoke through existing authenticated/enrollment flows |
@@ -22,4 +22,4 @@ The editable model includes title, inventory, services, checklist flags, closet 
 ByteRush may link to Plan and explain its passkeys. It must not PUT to `/api/lab`, import old Runs records, transfer credentials, or infer Plan checklist completion from learning progress. The main website remains the reference guide source for checklist and purchasing links.
 
 ## Exceptions
-A missing notebook returns 404. Unsupported import schema returns 400. Soft in-isolate session rate limiting returns 429. Offline and authentication failures must remain distinguishable from a successful save. Conflict detection is current read/check/update behavior, not proof against simultaneously racing writes.
+A missing notebook returns 404. Unsupported import schema returns 400. Soft in-isolate session rate limiting returns 429. Offline and authentication failures must remain distinguishable from a successful save. Deployed conflict detection is read/check/update behavior, not proof against simultaneously racing writes; ADR-P006 makes it a conditional write once deployed. A request body that is not a JSON object returns 400.
