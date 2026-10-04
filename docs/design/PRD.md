@@ -1,9 +1,9 @@
 # Labthrift Plan — Product Requirements Document
 
-> Baseline: 2026-10-03. Product: Labthrift Plan. Repository: `zemdregon/labthrift-plan`. Source-grounded design baseline; deployment and acceptance evidence is tracked separately in [release status](release-status.md).
+> Baseline: 2026-10-03. Product: Labthrift Plan. Repository: `zemdregon/labthrift-plan`. Source-grounded design baseline; deployment and acceptance evidence is tracked separately in [release status](release-status.md) and the [October 4 verification](verification-2026-10-04.md); remaining work is tracked in the [universal completion roadmap](https://github.com/zemdregon/tech-dose/blob/main/docs/ROADMAP.md).
 
 ## Product scope
-Plan is a personal lab notebook at configured host `plan.labthrift.com`. It is distinct from ByteRush’s learning feed and the editorial website. Users identify themselves with a username and passkey; email recovery is not part of the current experience.
+Plan is a personal lab notebook at configured host `plan.labthrift.com`. It is distinct from ByteRush’s learning feed and the editorial website. Users identify themselves with a username and passkey; email recovery is not part of the current experience. Passkeys use the shared `labthrift.com` RP ID, so a device may offer a Plan passkey on other Labthrift apps, but Plan accounts, sessions and notebooks live only in Plan’s database and are not signed in elsewhere.
 
 ## Product requirements
 | ID | Requirement |

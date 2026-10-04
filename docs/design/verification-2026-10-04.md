@@ -6,8 +6,8 @@ Roadmap items P01–P05 from the [universal completion roadmap](https://github.c
 |---|---|
 | Environment | Linux, Node 22.22, wrangler 4.129.0 (`--local`), Chromium 141 via playwright-core 1.56.1 |
 | Commands | `npm run test:api` (62 checks, `tests/api/`), `npm run test:browser` (17 checks, `tests/browser/`) |
-| Result | 79 of 79 pass on this branch. On the unchanged `main` source, 7 API checks and 8 browser checks fail; each failure is listed below with its fix. |
-| Deployed | No. Live Plan is still Worker version `f30c1b10-7b13-4c08-ae6c-5c2a1a336295`, which has the defects below until a release ships this branch. |
+| Result | 79 of 79 pass on the merged code ([labthrift-plan#4](https://github.com/zemdregon/labthrift-plan/pull/4)). On the unchanged `main` source, 7 API checks and 8 browser checks fail; each failure is listed below with its fix. |
+| Deployed | No. Live Plan is still Worker version `f30c1b10-7b13-4c08-ae6c-5c2a1a336295`, which has the defects below until `main` is deployed. |
 
 ## Results by roadmap item
 
@@ -64,19 +64,18 @@ Roadmap items P01–P05 from the [universal completion roadmap](https://github.c
 
 No offline editing guarantee is added. Edits made offline survive only while the tab stays open, and the existing leave-page warning covers unsaved changes.
 
-### P05 Atomic save — implemented on this branch, pending adoption
+### P05 Atomic save — adopted and merged, not yet deployed
 
 `tests/api/concurrency.test.mjs`, ADR-P006, SR-P10.
 
 On `main`, two saves from the same version both returned 200, and in the reproduced case both received the identical new `updated_at` (`2026-10-03T23:41:42.530Z`). The second silently replaced the first, and a stale client holding that timestamp could no longer be detected.
 
-This branch moves the version check into the `UPDATE … WHERE user_id = ? AND updated_at = ?` predicate and treats zero changed rows as a conflict carrying the current notebook. New versions are always strictly later than the previous one. Force saves and imports are explicit replacements that still write conditionally against the latest version, retrying a few times and returning 503 `busy` only under sustained contention. Locally, 25 two-way and 10 five-way races each produced exactly one winner, and the losers got recoverable conflicts. No schema migration is needed.
+The change moves the version check into the `UPDATE … WHERE user_id = ? AND updated_at = ?` predicate and treats zero changed rows as a conflict carrying the current notebook. New versions are always strictly later than the previous one. Force saves and imports are explicit replacements that still write conditionally against the latest version, retrying a few times and returning 503 `busy` only under sustained contention. Locally, 25 two-way and 10 five-way races each produced exactly one winner, and the losers got recoverable conflicts. No schema migration is needed.
 
-Done-when still open: Ender adopts it by merging, then the Plan release is deployed and verified live.
+Adopted by merging under the owner’s standing merge authority. Still open: deploy the Plan release and verify it live.
 
 ## Remaining before P01–P05 close
 
-1. Merge decision on this branch, including the P05 adoption.
-2. Deploy Plan (`npm run deploy`; no migration) and record the Worker version.
-3. Live smoke on `https://plan.labthrift.com` with a disposable account: create, edit, export/import, a second device, force a conflict, go offline, delete the account.
-4. Physical-passkey ceremonies listed under P03.
+1. Deploy Plan (`npm run deploy`; no migration) and record the Worker version.
+2. Live smoke on `https://plan.labthrift.com` with a disposable account: create, edit, export/import, a second device, force a conflict, go offline, delete the account.
+3. Physical-passkey ceremonies listed under P03.

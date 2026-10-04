@@ -3,7 +3,7 @@
 Baseline authored 2026-10-03. These design documents are source-grounded records and requirements, not proof of deployment.
 
 - ByteRush Runs merge: deployed and live feed/sync verified. Runs D1, checkout and local state removed; Worker/domain/DNS already absent. GitHub deletion is awaiting the CLI delete_repo authorization.
-- Plan: independent existing notebook; no runtime change required by the merge. Current design includes a known read/check/update save race; an atomic CAS improvement is proposed separately.
+- Plan: independent existing notebook; no runtime change required by the merge. The read/check/update save race was fixed on `main` by ADR-P006 on October 4, along with ten other defects; that code is not yet deployed (see the section below).
 - Main website: independent editorial site and metrics backend. Source guide and surviving link checks remain part of the merge release gate.
 - No old Runs user data is imported. Its permanent deletion occurs only after replacement deployment and live sync acceptance.
 
@@ -27,4 +27,4 @@ Release state: **deployed and verified live**. Cloudflare Worker version `f30c1b
 
 ## Local verification of P01–P05 — October 4, 2026
 
-See [verification](verification-2026-10-04.md). The new `npm test` suite (62 API and 17 browser checks against a disposable local D1) passes on branch `claude/project-thread-jfkf0x`. It found and fixed eleven defects on `main`, including a notebook wipe from malformed save or import bodies, stored script from imported text, a service worker that never registered, false self-conflicts on slow connections, and the save race (ADR-P006). Release state: **not deployed**. Production still runs Worker version `f30c1b10-7b13-4c08-ae6c-5c2a1a336295` with those defects until this branch is merged, deployed and smoke-tested live. Physical-passkey ceremonies remain a manual check.
+See [verification](verification-2026-10-04.md). The new `npm test` suite (62 API and 17 browser checks against a disposable local D1) passes on `main` (merged in [labthrift-plan#4](https://github.com/zemdregon/labthrift-plan/pull/4)). It found and fixed eleven defects on `main`, including a notebook wipe from malformed save or import bodies, stored script from imported text, a service worker that never registered, false self-conflicts on slow connections, and the save race (ADR-P006). Release state: **not deployed**. Production still runs Worker version `f30c1b10-7b13-4c08-ae6c-5c2a1a336295` with those defects until `main` is deployed and smoke-tested live. Physical-passkey ceremonies remain a manual check.
