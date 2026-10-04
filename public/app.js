@@ -21,6 +21,9 @@ let online = typeof navigator !== "undefined" ? navigator.onLine : true;
 
 const $ = (id) => document.getElementById(id);
 
+const esc = (v) =>
+  String(v).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+
 function showErr(el, msg) {
   if (!msg) {
     el.classList.add("hidden");
@@ -67,6 +70,12 @@ document.querySelectorAll('input[name="themePick"]').forEach((r) => {
     if (r.checked) setTheme(r.value);
   };
 });
+
+// Only the browser's own offline state skips a save attempt. A failed request marks the banner
+// offline, but the next save still tries, so a transient error cannot leave edits stuck unsaved.
+function browserOffline() {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
 
 function setOfflineBanner() {
   const el = $("offlineBanner");
@@ -126,12 +135,21 @@ async function api(path, opts = {}) {
     err.status = 0;
     throw err;
   }
+  const ct = res.headers.get("content-type") || "";
+  const body = ct.includes("json") ? await res.json().catch(() => ({})) : await res.text();
+  // The service worker answers API/auth GETs with this 503 when the network is down.
+  if (res.status === 503 && body && body.error === "offline") {
+    online = false;
+    setOfflineBanner();
+    const err = new Error("network_error");
+    err.code = "network_error";
+    err.status = 0;
+    throw err;
+  }
   if (!online) {
     online = true;
     setOfflineBanner();
   }
-  const ct = res.headers.get("content-type") || "";
-  const body = ct.includes("json") ? await res.json().catch(() => ({})) : await res.text();
   if (!res.ok) {
     const err = new Error((body && body.error) || res.statusText);
     err.code = body && body.error;
@@ -173,7 +191,7 @@ function scheduleLiveRender() {
 
 function scheduleSave() {
   if (!lab) return;
-  if (!online) {
+  if (browserOffline()) {
     $("saveMsg").textContent = "Offline — will retry when back";
     return;
   }
@@ -183,13 +201,21 @@ function scheduleSave() {
   saveTimer = setTimeout(() => persist(gen), 450);
 }
 
-async function persist(gen, { force = false } = {}) {
+// Saves run one at a time so each one is based on the version the previous save returned.
+let saveChain = Promise.resolve();
+function persist(gen, opts) {
+  saveChain = saveChain.then(() => persistNow(gen, opts));
+  return saveChain;
+}
+
+async function persistNow(gen, { force = false } = {}) {
   if (!lab) return;
-  if (!online) {
+  if (browserOffline()) {
     dirty = true;
     $("saveMsg").textContent = "Offline — will retry when back";
     return;
   }
+  const target = lab;
   try {
     const snapshot = JSON.parse(JSON.stringify(lab));
     delete snapshot.id;
@@ -198,12 +224,16 @@ async function persist(gen, { force = false } = {}) {
       forceNextSave = false;
     }
     const res = await api("/api/lab", { method: "PUT", body: JSON.stringify(snapshot) });
-    if (gen !== saveGen) return;
+    // The notebook was replaced meanwhile (reload, import, sign-out): this result no longer applies.
+    if (target !== lab) return;
+    // Always track the server's latest version, even if newer edits are already queued.
     lab.updated_at = res.updated_at;
+    if (gen !== saveGen) return;
     dirty = false;
     setConflictBar(false);
     $("saveMsg").textContent = "Saved " + new Date(res.updated_at).toLocaleTimeString();
   } catch (e) {
+    if (target !== lab) return;
     if (e.status === 409 && e.body) {
       dirty = true;
       setConflictBar(true);
@@ -249,7 +279,7 @@ window.addEventListener("beforeunload", (e) => {
 });
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && dirty && online) {
+  if (document.visibilityState === "visible" && dirty && !browserOffline()) {
     saveGen++;
     persist(saveGen);
   }
@@ -379,7 +409,7 @@ function renderInventory() {
     const known = INV_ROLES.some((r) => r.v && r.v === it.role);
     const customRole =
       it.role && !known
-        ? `<option value="${it.role.replace(/"/g, "&quot;")}" selected>${it.role}</option>`
+        ? `<option value="${esc(it.role)}" selected>${esc(it.role)}</option>`
         : "";
     div.innerHTML = `
       <div class="inv-main">
@@ -509,7 +539,7 @@ function hostOptionsHtml(selected) {
   (lab.inventory || []).forEach((it) => {
     const label = (it.name || "unnamed") + (it.role ? ` (${it.role})` : "");
     const sel = selected && selected === it.id ? " selected" : "";
-    opts.push(`<option value="${it.id}"${sel}>${label.replace(/</g, "&lt;")}</option>`);
+    opts.push(`<option value="${esc(it.id)}"${sel}>${esc(label)}</option>`);
   });
   return opts.join("");
 }
@@ -682,7 +712,7 @@ function renderHeadroom() {
     const card = document.createElement("div");
     card.className = "item headroom-card";
     let body = `<strong>${(host.name || "unnamed").replace(/</g, "&lt;")}</strong>`;
-    if (host.role) body += ` <span class="chip-lite">${host.role}</span>`;
+    if (host.role) body += ` <span class="chip-lite">${esc(host.role)}</span>`;
     if (host.needsAttention) body += ` <span class="attn-badge">attention</span>`;
     body += `<div class="muted" style="margin:0.35rem 0">Services: ${svcs.length || "none"}</div>`;
 
@@ -1588,7 +1618,9 @@ $("signinBtn").onclick = async () => {
   } catch (e) {
     showErr(
       $("gateErr"),
-      e.code === "unknown_user" ? "No account with that username." : e.message || String(e)
+      e.code === "invalid_credentials"
+        ? "Sign-in failed. Check the username and use a passkey saved for this account."
+        : e.message || String(e)
     );
   }
 };
@@ -1787,9 +1819,10 @@ function setupInstallHelp() {
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   if (!window.isSecureContext) return;
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-  });
+  const register = () => navigator.serviceWorker.register("/sw.js").catch(() => {});
+  // app.js is loaded with a dynamic import, which usually runs after the page's load event.
+  if (document.readyState === "complete") register();
+  else window.addEventListener("load", register, { once: true });
 }
 
 setupInstallHelp();

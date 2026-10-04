@@ -1042,8 +1042,13 @@ app.get("/api/lab", requireUser, async (c) => {
   return c.json(lab);
 });
 
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
 app.put("/api/lab", requireUser, async (c) => {
   const body = await c.req.json().catch(() => null);
+  if (!isPlainObject(body)) return c.json({ error: "bad_request" }, 400);
   const lab = clampLab(body);
   const userId = c.get("userId");
   const force = !!(body && (body as any).force === true);
@@ -1097,7 +1102,7 @@ app.put("/api/lab", requireUser, async (c) => {
 
 app.post("/api/lab/import", requireUser, async (c) => {
   const body = await c.req.json().catch(() => null);
-  if (!body || typeof body !== "object") return c.json({ error: "bad_request" }, 400);
+  if (!isPlainObject(body)) return c.json({ error: "bad_request" }, 400);
 
   const version = (body as any).schema_version;
   // Legacy exports omit schema_version — treat as v1. Accept 1–2; reject unknown future versions.
@@ -1108,12 +1113,12 @@ app.post("/api/lab/import", requireUser, async (c) => {
     }
   }
 
-  const rawLab = (body as any).lab && typeof (body as any).lab === "object" ? (body as any).lab : body;
+  const rawLab = isPlainObject(body.lab) ? body.lab : body;
   const lab = clampLab(rawLab);
   const ts = nowIso();
   const userId = c.get("userId");
   const capacity = sanitizeCapacity(lab);
-  await c.env.DB.prepare(
+  const res = await c.env.DB.prepare(
     `UPDATE labs SET title = ?, inventory_json = ?, checklist_json = ?, closet_json = ?,
      hosts_json = ?, bom_json = ?, services_json = ?, capacity_json = ?, updated_at = ? WHERE user_id = ?`
   )
@@ -1130,6 +1135,7 @@ app.post("/api/lab/import", requireUser, async (c) => {
       userId
     )
     .run();
+  if (!res.meta?.changes) return c.json({ error: "missing_lab" }, 404);
   if (!isBotRequest(c)) scheduleMetric(c, "lab_save_human");
   else scheduleMetric(c, "lab_save_bot");
   const full = await getLab(c.env.DB, userId);
