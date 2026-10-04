@@ -1,0 +1,3 @@
+# Default owner for everything. GitHub only acts on this file in private repos on
+# GitHub Pro or above (auto-requested reviews, required code-owner review).
+* @zemdregon
