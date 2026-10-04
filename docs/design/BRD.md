@@ -1,6 +1,6 @@
 # Labthrift Plan — Business Requirements Document
 
-> Baseline: 2026-10-03. Product: Labthrift Plan. Repository: `zemdregon/labthrift-plan`. Source-grounded design baseline; deployment and acceptance evidence is tracked separately in [release status](release-status.md).
+> Baseline: 2026-10-03. Product: Labthrift Plan. Repository: `zemdregon/labthrift-plan`. Source-grounded design baseline; deployment and acceptance evidence is tracked separately in [release status](release-status.md) and the [October 4 verification](verification-2026-10-04.md); remaining work is tracked in the [universal completion roadmap](https://github.com/zemdregon/tech-dose/blob/main/docs/ROADMAP.md).
 
 ## Purpose
 Provide a durable personal notebook for a small home lab: equipment, services, rack layout, local hosts, purchase notes and practical checklists. The value is remembering what exists and what needs attention across devices, rather than running infrastructure for the user.
@@ -20,4 +20,4 @@ The Runs merge removes a parallel learning product, not this notebook. A ByteRus
 The owner needs reliable save/conflict feedback, passkey access and an escape path through exports. The maintainer operates an existing Worker and D1 database with no new infrastructure required by the merge. No subscription, commercial SLA, purchasing integration or automatic equipment discovery is assumed.
 
 ## Risks and acceptance
-Passkey loss and confusing account boundaries can lock users out. The current save conflict check detects stale submitted versions but is not a fully atomic CAS; document this as a known limitation rather than claiming concurrency safety. Preservation acceptance requires the existing app shell, authentication boundary and lab API to remain healthy after Runs retirement. No change to Plan storage or authentication is authorized as a necessary part of the learning merge.
+Passkey loss and confusing account boundaries can lock users out. The deployed save conflict check detects stale submitted versions but is not an atomic CAS. The conditional write adopted in ADR-P006 closes the race once it is deployed; until then, treat it as a known limitation and do not claim concurrency safety. Preservation acceptance requires the existing app shell, authentication boundary and lab API to remain healthy after Runs retirement. No change to Plan storage or authentication is authorized as a necessary part of the learning merge.

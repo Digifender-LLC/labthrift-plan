@@ -1,6 +1,6 @@
 # Labthrift Plan — Low-Level Design
 
-> Baseline: 2026-10-03. Product: Labthrift Plan. Repository: `zemdregon/labthrift-plan`. Source-grounded design baseline; deployment and acceptance evidence is tracked separately in [release status](release-status.md).
+> Baseline: 2026-10-03. Product: Labthrift Plan. Repository: `zemdregon/labthrift-plan`. Source-grounded design baseline; deployment and acceptance evidence is tracked separately in [release status](release-status.md) and the [October 4 verification](verification-2026-10-04.md); remaining work is tracked in the [universal completion roadmap](https://github.com/zemdregon/tech-dose/blob/main/docs/ROADMAP.md).
 
 ## Notebook representation
 `labs` contains an ID, unique `user_id`, title, JSON strings for inventory/checklist/closet/hosts/bom/services/capacity and `updated_at`. Reading parses JSON and combines checklist defaults with stored flags. Capacity fields expose `upsVa` and `powerNote` when present.
